@@ -195,25 +195,7 @@ void game(int w, int h, int timesteps) {
             sendenObenGhost[x - 1] = current_part_field[calcIndex(w, x, 1)];
             sendenUntenGhost[x - 1] = current_part_field[calcIndex(w, x, 14)];
         }
-
-        for (int x = 1; x < 15; x++) {
-            for (int y = 1; y < 15; y++) {
-                if (x == 1) {
-                    //printf("%d, %d, %d\n", x, y, current_part_field[calcIndex(w, x, y)]);
-                    sendenLinksGhost[y - 1] = current_part_field[calcIndex(w, x, y)];
-                }
-                if (x == 14) {
-                    sendenRechtsGhost[y - 14] = current_part_field[calcIndex(w, x, y)];
-                }
-
-                if (y == 1) {
-                    sendenObenGhost[x] = current_part_field[calcIndex(w, x, y)];
-                }
-                if (y == 14) {
-                    sendenUntenGhost[x] = current_part_field[calcIndex(w, x, y)];
-                }
-            }
-        }
+        
         MPI_Barrier(MPI_COMM_WORLD);
 
         if (rank == 0) {
@@ -244,7 +226,6 @@ void game(int w, int h, int timesteps) {
             MPI_Recv(&untenGhost, 14, MPI_INT, 3, 98, MPI_COMM_WORLD, &statusUnten);
             MPI_Recv(&linksGhost, 14, MPI_INT, 0, 99, MPI_COMM_WORLD, &statusLinks);
             printf("rank ready:%d\n", rank);
-
         } else if (rank == 2) {
             printf("rank send :%d\n", rank);
             MPI_Send(&sendenUntenGhost, 14, MPI_INT, 0, 96, MPI_COMM_WORLD);
@@ -258,8 +239,6 @@ void game(int w, int h, int timesteps) {
             MPI_Recv(&untenGhost, 14, MPI_INT, 0, 98, MPI_COMM_WORLD, &statusUnten);
             MPI_Recv(&linksGhost, 14, MPI_INT, 3, 99, MPI_COMM_WORLD, &statusLinks);
             printf("rank ready:%d\n", rank);
-
-
         } else if (rank == 3) {
             printf("rank rec:%d\n", rank);
             MPI_Recv(&obenGhost, 14, MPI_INT, 1, 96, MPI_COMM_WORLD, &statusOben);
