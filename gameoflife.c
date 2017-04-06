@@ -176,7 +176,7 @@ void game(int w, int h, int timesteps) {
         // Mapping auf Teilfeld vom großem
         for (int x = 0; x < 14; x++) {
             for (int y = 0; y < 14; y++) {
-                current_part_field[calcIndex(w, x+1, y+1)] = currentfield[calcIndex(w, x + xStart, y + yStart)];
+                current_part_field[calcIndex(w, x + 1, y + 1)] = currentfield[calcIndex(w, x + xStart, y + yStart)];
             }
         }
         int sendenRechtsGhost[14];
@@ -185,21 +185,32 @@ void game(int w, int h, int timesteps) {
         int sendenUntenGhost[14];
 
         MPI_Barrier(MPI_COMM_WORLD);
+
+        for (int y = 1; y < 15; y++) {
+            sendenLinksGhost[y - 1] = current_part_field[calcIndex(w, 1, y)];
+            sendenRechtsGhost[y - 1] = current_part_field[calcIndex(w, 14, y)];
+        }
+
+        for (int x = 1; x < 15; x++) {
+            sendenObenGhost[x - 1] = current_part_field[calcIndex(w, x, 1)];
+            sendenUntenGhost[x - 1] = current_part_field[calcIndex(w, x, 14)];
+        }
+
         for (int x = 1; x < 15; x++) {
             for (int y = 1; y < 15; y++) {
                 if (x == 1) {
                     //printf("%d, %d, %d\n", x, y, current_part_field[calcIndex(w, x, y)]);
                     sendenLinksGhost[y - 1] = current_part_field[calcIndex(w, x, y)];
                 }
-                if(x == 14){
+                if (x == 14) {
                     sendenRechtsGhost[y - 14] = current_part_field[calcIndex(w, x, y)];
                 }
-                //HIER IRGENDWO FEHLER
-                if(y == 1){
-                    sendenObenGhost[x - 1] = current_part_field[calcIndex(w, x, y)];
+
+                if (y == 1) {
+                    sendenObenGhost[x] = current_part_field[calcIndex(w, x, y)];
                 }
-                if(y== 14){
-                    sendenUntenGhost[x-14] = current_part_field[calcIndex(w, x, y)];
+                if (y == 14) {
+                    sendenUntenGhost[x] = current_part_field[calcIndex(w, x, y)];
                 }
             }
         }
@@ -220,7 +231,7 @@ void game(int w, int h, int timesteps) {
 
             printf("rank ready:%d\n", rank);
 
-        }else if(rank == 1){
+        } else if (rank == 1) {
             printf("rank send:%d\n", rank);
             MPI_Send(&sendenUntenGhost, 14, MPI_INT, 3, 96, MPI_COMM_WORLD);
             MPI_Send(&sendenRechtsGhost, 14, MPI_INT, 0, 97, MPI_COMM_WORLD);
@@ -234,7 +245,7 @@ void game(int w, int h, int timesteps) {
             MPI_Recv(&linksGhost, 14, MPI_INT, 0, 99, MPI_COMM_WORLD, &statusLinks);
             printf("rank ready:%d\n", rank);
 
-        }else  if (rank == 2){
+        } else if (rank == 2) {
             printf("rank send :%d\n", rank);
             MPI_Send(&sendenUntenGhost, 14, MPI_INT, 0, 96, MPI_COMM_WORLD);
             MPI_Send(&sendenRechtsGhost, 14, MPI_INT, 3, 97, MPI_COMM_WORLD);
@@ -249,7 +260,7 @@ void game(int w, int h, int timesteps) {
             printf("rank ready:%d\n", rank);
 
 
-        }else if(rank == 3){
+        } else if (rank == 3) {
             printf("rank rec:%d\n", rank);
             MPI_Recv(&obenGhost, 14, MPI_INT, 1, 96, MPI_COMM_WORLD, &statusOben);
             MPI_Recv(&rechtsGhost, 14, MPI_INT, 2, 97, MPI_COMM_WORLD, &statusLinks);
@@ -269,14 +280,13 @@ void game(int w, int h, int timesteps) {
         MPI_Barrier(MPI_COMM_WORLD);
 
 
-
         if (rank == 0) {
             for (int i = 0; i < 14; i++) {
-                printf("%d %d %d %d %d\n", i, linksGhost[i], obenGhost[i], rechtsGhost[i], untenGhost[i]);
-                current_part_field[calcIndex(w, xStart-1, i+1)] = linksGhost[i];
-                current_part_field[calcIndex(w, xEnd, i+1)] = rechtsGhost[i];
-                current_part_field[calcIndex(w, i+1, xStart-1)] = obenGhost[i];
-                current_part_field[calcIndex(w, i+1, xEnd)] = untenGhost[i];
+                printf("%d %d %d %d %d\n", i, obenGhost[i], rechtsGhost[i], untenGhost[i], linksGhost[i]);
+                current_part_field[calcIndex(w, xStart - 1, i + 1)] = linksGhost[i];
+                current_part_field[calcIndex(w, xEnd, i + 1)] = rechtsGhost[i];
+                current_part_field[calcIndex(w, i + 1, xStart - 1)] = obenGhost[i];
+                current_part_field[calcIndex(w, i + 1, xEnd)] = untenGhost[i];
             }
             debug_print(current_part_field, w, h);
             evolve(current_part_field, new_part_field, w, h, 1, 15, 1, 15);
