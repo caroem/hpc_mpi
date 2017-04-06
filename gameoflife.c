@@ -179,6 +179,12 @@ void game(int w, int h, int timesteps) {
                 current_part_field[calcIndex(w, x + 1, y + 1)] = currentfield[calcIndex(w, x + xStart, y + yStart)];
             }
         }
+
+        if (rank == 0) {
+            printf("\n Initiales Feld \n");
+            debug_print(current_part_field, w, h);
+            printf("\n");
+        }
         int sendenRechtsGhost[14];
         int sendenLinksGhost[14];
         int sendenObenGhost[14];
@@ -195,7 +201,7 @@ void game(int w, int h, int timesteps) {
             sendenObenGhost[x - 1] = current_part_field[calcIndex(w, x, 1)];
             sendenUntenGhost[x - 1] = current_part_field[calcIndex(w, x, 14)];
         }
-        
+
         MPI_Barrier(MPI_COMM_WORLD);
 
         if (rank == 0) {
@@ -269,6 +275,8 @@ void game(int w, int h, int timesteps) {
             }
             debug_print(current_part_field, w, h);
             evolve(current_part_field, new_part_field, w, h, 1, 15, 1, 15);
+            printf("\n");
+            debug_print(new_part_field, w, h);
             exit(1);
         }
         MPI_Barrier(MPI_COMM_WORLD);
