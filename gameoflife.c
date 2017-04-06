@@ -131,6 +131,7 @@ void game(int w, int h, int timesteps) {
     int rank, size;
     MPI_Status statusOben;
     MPI_Status statusUnten;
+    MPI_Status statusRechts;
     MPI_Status statusLinks;
     MPI_Comm card_comm;
     int dim[1], periodic[1];
@@ -207,7 +208,7 @@ void game(int w, int h, int timesteps) {
         if (rank == 0) {
             printf("rank rec:%d\n", rank);
             MPI_Recv(&obenGhost, 14, MPI_INT, 2, 96, MPI_COMM_WORLD, &statusOben);
-            MPI_Recv(&rechtsGhost, 14, MPI_INT, 1, 97, MPI_COMM_WORLD, &statusLinks);
+            MPI_Recv(&rechtsGhost, 14, MPI_INT, 1, 97, MPI_COMM_WORLD, &statusRechts);
             MPI_Recv(&untenGhost, 14, MPI_INT, 2, 98, MPI_COMM_WORLD, &statusUnten);
             MPI_Recv(&linksGhost, 14, MPI_INT, 1, 99, MPI_COMM_WORLD, &statusLinks);
 
@@ -228,7 +229,7 @@ void game(int w, int h, int timesteps) {
 
             printf("rank rec:%d\n", rank);
             MPI_Recv(&obenGhost, 14, MPI_INT, 3, 96, MPI_COMM_WORLD, &statusOben);
-            MPI_Recv(&rechtsGhost, 14, MPI_INT, 0, 97, MPI_COMM_WORLD, &statusLinks);
+            MPI_Recv(&rechtsGhost, 14, MPI_INT, 0, 97, MPI_COMM_WORLD, &statusRechts);
             MPI_Recv(&untenGhost, 14, MPI_INT, 3, 98, MPI_COMM_WORLD, &statusUnten);
             MPI_Recv(&linksGhost, 14, MPI_INT, 0, 99, MPI_COMM_WORLD, &statusLinks);
             printf("rank ready:%d\n", rank);
@@ -241,14 +242,14 @@ void game(int w, int h, int timesteps) {
 
             printf("rank rec:%d\n", rank);
             MPI_Recv(&obenGhost, 14, MPI_INT, 0, 96, MPI_COMM_WORLD, &statusOben);
-            MPI_Recv(&rechtsGhost, 14, MPI_INT, 3, 97, MPI_COMM_WORLD, &statusLinks);
+            MPI_Recv(&rechtsGhost, 14, MPI_INT, 3, 97, MPI_COMM_WORLD, &statusRechts);
             MPI_Recv(&untenGhost, 14, MPI_INT, 0, 98, MPI_COMM_WORLD, &statusUnten);
             MPI_Recv(&linksGhost, 14, MPI_INT, 3, 99, MPI_COMM_WORLD, &statusLinks);
             printf("rank ready:%d\n", rank);
         } else if (rank == 3) {
             printf("rank rec:%d\n", rank);
             MPI_Recv(&obenGhost, 14, MPI_INT, 1, 96, MPI_COMM_WORLD, &statusOben);
-            MPI_Recv(&rechtsGhost, 14, MPI_INT, 2, 97, MPI_COMM_WORLD, &statusLinks);
+            MPI_Recv(&rechtsGhost, 14, MPI_INT, 2, 97, MPI_COMM_WORLD, &statusRechts);
             MPI_Recv(&untenGhost, 14, MPI_INT, 1, 98, MPI_COMM_WORLD, &statusUnten);
             MPI_Recv(&linksGhost, 14, MPI_INT, 2, 99, MPI_COMM_WORLD, &statusLinks);
 
@@ -268,110 +269,36 @@ void game(int w, int h, int timesteps) {
         if (rank == 0) {
             for (int i = 0; i < 14; i++) {
                 printf("%d %d %d %d %d\n", i, obenGhost[i], rechtsGhost[i], untenGhost[i], linksGhost[i]);
-                current_part_field[calcIndex(w, xStart - 1, i + 1)] = linksGhost[i];
-                current_part_field[calcIndex(w, xEnd, i + 1)] = rechtsGhost[i];
-                current_part_field[calcIndex(w, i + 1, xStart - 1)] = obenGhost[i];
-                current_part_field[calcIndex(w, i + 1, xEnd)] = untenGhost[i];
+                current_part_field[calcIndex(w, 0, i + 1)] = linksGhost[i];
+                current_part_field[calcIndex(w, 15, i + 1)] = rechtsGhost[i];
+                current_part_field[calcIndex(w, i + 1, 0)] = obenGhost[i];
+                current_part_field[calcIndex(w, i + 1, 15)] = untenGhost[i];
             }
+            printf("\n Current Part field with Exhange \n");
             debug_print(current_part_field, w, h);
             evolve(current_part_field, new_part_field, w, h, 1, 15, 1, 15);
-            printf("\n");
+            printf("\n After Evoling\n");
+            debug_print(new_part_field, w, h);
+            exit(1);
+        }
+
+        // Todo hier weait all http://stackoverflow.com/questions/7149314/how-actually-mpi-waitall-works
+        if (rank == 2) {
+            for (int i = 0; i < 14; i++) {
+                printf("%d %d %d %d %d\n", i, obenGhost[i], rechtsGhost[i], untenGhost[i], linksGhost[i]);
+                current_part_field[calcIndex(w, 0, i + 1)] = linksGhost[i];
+                current_part_field[calcIndex(w, 15, i + 1)] = rechtsGhost[i];
+                current_part_field[calcIndex(w, i + 1, 0)] = obenGhost[i];
+                current_part_field[calcIndex(w, i + 1, 15)] = untenGhost[i];
+            }
+            printf("\n Current Part field with Exhange \n");
+            debug_print(current_part_field, w, h);
+            evolve(current_part_field, new_part_field, w, h, 1, 15, 1, 15);
+            printf("\n After Evoling\n");
             debug_print(new_part_field, w, h);
             exit(1);
         }
         MPI_Barrier(MPI_COMM_WORLD);
-
-        /*else if (rank == 1) {
-            int sendenRechtsGhost[13];
-            int sendenLinksGhost[13];
-            for (int x = 15; x < 29; x++) {
-                for (int y = 1; y < 15; y++) {
-                    if (x == 15) {
-                        sendenLinksGhost[y - 1] = currentfield[calcIndex(w, x, y)];
-                    }
-                    if (x == 28) {
-                        sendenRechtsGhost[y - 1] = currentfield[calcIndex(w, x, y)];
-                    }
-                    current_part_field[calcIndex(w, x + 1, y)] = currentfield[calcIndex(w, x, y)];
-                }
-            }
-            //MPI_Send(&sendenLinksGhost, 14, MPI_INT, 0, 99, MPI_COMM_WORLD);
-            //MPI_Send(&sendenRechtsGhost, 14, MPI_INT, 0, 97, MPI_COMM_WORLD);
-        }
-        if (rank == 2) {
-            // Von Unten nach Oben
-            int sendenUntenGhost[13];
-
-            // Von Oben nach Unten
-            int sendenObenGhost[13];
-
-            for (int x = 1; x < 15; x++) {
-                for (int y = 15; y < 29; y++) {
-                    current_part_field[calcIndex(w, x, y + 1)] = currentfield[calcIndex(w, x, y)];
-                    if (y == 28) {
-                        //printf("%d, %d, %d\n", x, y, currentfield[calcIndex(w, x, y)]);
-                        sendenUntenGhost[x - 1] = currentfield[calcIndex(w, x, y)];
-                    }
-                    if (y == 15) {
-                        sendenObenGhost[x - 1] = currentfield[calcIndex(w, x, y)];
-                    }
-                    current_part_field[calcIndex(w, x + 1, y + 1)] = currentfield[calcIndex(w, x, y)];
-                }
-            }
-
-            MPI_Send(&sendenObenGhost, 14, MPI_INT, 0, 98, MPI_COMM_WORLD);
-            MPI_Send(&sendenUntenGhost, 14, MPI_INT, 0, 96, MPI_COMM_WORLD);
-        }
-
-*/
-
-/*
-        if (rank == 0) {
-            for (int i = 0; i < 14; i++) {
-                printf("%d, %d \n", linksGhost[i], rechtsGhost[i]);
-                //current_part_field[calcIndex(w, xStart-1, i+1)] = linksGhost[i];
-                //current_part_field[calcIndex(w, xEnd, i+1)] = rechtsGhost[i];
-                current_part_field[calcIndex(w, i+1, xStart-1)] = obenGhost[i];
-                current_part_field[calcIndex(w, i+1, xEnd)] = untenGhost[i];
-            }
-            printf("\n Nachaustausch\n");
-            debug_print(current_part_field, 0, 16, 0, 16, w, h);
-
-            //MPI_Recv(&untenGhost, 16, MPI_INT, 2, 99, MPI_COMM_WORLD, &statusUnten);
-            //MPI_Recv(&untenGhost, 16, MPI_INT, 2, 99, MPI_COMM_WORLD, &statusUnten);
-
-            evolve(current_part_field, new_part_field, w, h, 1, 15, 1, 15);
-            printf("\n Nach evolven");
-            printf("\n");
-&&debug_print(new_part_field, 0, 16, 0, 16, w, h);
-        }
-
-
-
-        if (rank == 3) {
-            int oben2Ghost[13];
-            for (int x = 15; x < 29; x++) {
-                for (int y = 15; y < 29; y++) {
-                    current_part_field[calcIndex(w, x + 1, y + 1)] = currentfield[calcIndex(w, x, y)];
-                }
-            }
-            //MPI_Send(&oben2Ghost, 14, MPI_INT, 0, 99, MPI_COMM_WORLD);
-        }
-
-        MPI_Barrier(MPI_COMM_WORLD);
-        exit(1);
-        int field[w * h];
-        MPI_Gather(&new_part_field, 4, MPI_INT, &field, 14 * 14, MPI_INT, 0, MPI_COMM_WORLD);
-        if (rank == 0) {
-            // recv buffer
-            //debug_print(current_part_field, 1, 15, 1, 15, w, h);
-            printf("\n");
-            printf("\n");
-            //debug_print(field, 1, 29, 1, 29, w, h);
-            exit(1);
-            show(field, w, h);
-            //exit(1);
-        }*/
     }
 
     free(currentfield);
